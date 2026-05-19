@@ -1,9 +1,3 @@
-"""
-Two-phase training:
-  1. Train only the new head (backbone frozen) for a few epochs — fast convergence.
-  2. Unfreeze everything and fine-tune at a lower lr — squeezes out extra accuracy.
-"""
-
 import json
 from pathlib import Path
 
@@ -49,25 +43,23 @@ def evaluate(model, loader, criterion):
 
 def train(data_dir: str = "data", epochs_head: int = 5, epochs_finetune: int = 10, batch_size: int = 32):
     train_loader, val_loader, classes = get_loaders(data_dir, batch_size)
-    num_classes = len(classes)
-    print(f"Classes: {classes}")
-    print(f"Device: {DEVICE}")
+    print(f"Classes: {classes}  |  Device: {DEVICE}")
 
-    model = build_model(num_classes, freeze_backbone=True).to(DEVICE)
+    model = build_model(len(classes), freeze_backbone=True).to(DEVICE)
     criterion = nn.CrossEntropyLoss()
 
-    # Phase 1 — head only
-    print("\n--- Phase 1: training classifier head ---")
+    # phase 1 — train head only, backbone frozen
+    print("\nPhase 1: head only")
     optimizer = Adam(model.classifier.parameters(), lr=1e-3)
     scheduler = CosineAnnealingLR(optimizer, T_max=epochs_head)
     for epoch in range(epochs_head):
-        tr_loss, tr_acc = train_one_epoch(model, train_loader, optimizer, criterion)
-        val_loss, val_acc = evaluate(model, val_loader, criterion)
+        _, tr_acc = train_one_epoch(model, train_loader, optimizer, criterion)
+        _, val_acc = evaluate(model, val_loader, criterion)
         scheduler.step()
-        print(f"Epoch {epoch+1}/{epochs_head}  train_acc={tr_acc:.3f}  val_acc={val_acc:.3f}")
+        print(f"  {epoch+1}/{epochs_head}  train={tr_acc:.3f}  val={val_acc:.3f}")
 
-    # Phase 2 — full fine-tune
-    print("\n--- Phase 2: fine-tuning full network ---")
+    # phase 2 — unfreeze everything, lower lr
+    print("\nPhase 2: full fine-tune")
     for param in model.parameters():
         param.requires_grad = True
     optimizer = Adam(model.parameters(), lr=1e-4)
@@ -75,21 +67,20 @@ def train(data_dir: str = "data", epochs_head: int = 5, epochs_finetune: int = 1
 
     best_acc, best_state = 0.0, None
     for epoch in range(epochs_finetune):
-        tr_loss, tr_acc = train_one_epoch(model, train_loader, optimizer, criterion)
-        val_loss, val_acc = evaluate(model, val_loader, criterion)
+        _, tr_acc = train_one_epoch(model, train_loader, optimizer, criterion)
+        _, val_acc = evaluate(model, val_loader, criterion)
         scheduler.step()
-        print(f"Epoch {epoch+1}/{epochs_finetune}  train_acc={tr_acc:.3f}  val_acc={val_acc:.3f}")
+        print(f"  {epoch+1}/{epochs_finetune}  train={tr_acc:.3f}  val={val_acc:.3f}")
         if val_acc > best_acc:
             best_acc = val_acc
             best_state = {k: v.clone() for k, v in model.state_dict().items()}
 
-    # Save
     out_dir = Path("model")
     out_dir.mkdir(exist_ok=True)
     model.load_state_dict(best_state)
     torch.save(model.state_dict(), out_dir / "model.pth")
     (out_dir / "classes.json").write_text(json.dumps(classes))
-    print(f"\nBest val accuracy: {best_acc:.4f} — saved to {out_dir}/")
+    print(f"\nBest val acc: {best_acc:.4f} — saved to {out_dir}/")
 
 
 if __name__ == "__main__":
