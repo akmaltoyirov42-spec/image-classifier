@@ -3,7 +3,7 @@
 ![Python](https://img.shields.io/badge/python-3.11-blue)
 ![PyTorch](https://img.shields.io/badge/PyTorch-2.3-ee4c2c?logo=pytorch)
 
-learning transfer learning with PyTorch. fine-tuned EfficientNet-B0 on a small animal dataset and put a streamlit UI on top so you can upload images and get predictions.
+fine-tuned EfficientNet-B0 on a small animal dataset using two-phase transfer learning. streamlit UI on top so you can upload images and see top-5 predictions.
 
 ---
 
@@ -13,10 +13,10 @@ tested on 5 animal classes (~1000 images each):
 
 | phase | val accuracy |
 |---|---|
-| just train the head, 5 epochs | 88.3% |
-| unfreeze everything, 10 more epochs | **94.1%** |
+| train head only, 5 epochs | 88.3% |
+| unfreeze all, 10 more epochs | **94.1%** |
 
-took ~12 min on my RTX 3060. CPU works too, just slower.
+took ~12 min on RTX 3060. CPU works too, just slower.
 
 ---
 
@@ -54,18 +54,24 @@ just checks model output shapes and frozen layers. no GPU needed.
 
 ## why EfficientNet
 
-tried ResNet first because it's the classic choice. then tried EfficientNet:
-- ~2% better accuracy
+ResNet was the obvious choice but EfficientNet-B0 turned out better:
+- ~2% higher accuracy
 - 30% faster training
 - 20mb saved model instead of 98mb
 
-for a web demo where you wait for the model to load, 20mb is way nicer than 98mb. switched and didn't look back.
+for a web demo where you wait for the model to load, 20mb is much nicer.
 
 ---
 
 ## deploy free on hugging face spaces
 
-create a streamlit space, upload `app/`, `src/`, `requirements.txt`, and your `model/` folder. that's it.
+create a streamlit space, upload `app/`, `src/`, `requirements.txt`, and your `model/` folder. done.
+
+---
+
+## what's next
+
+want to add Grad-CAM visualization so you can see which part of the image the model is looking at. also planning to swap in EfficientNet-B3 for a bigger accuracy bump and benchmark the trade-off.
 
 ---
 
