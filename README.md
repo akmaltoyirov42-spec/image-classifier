@@ -20,19 +20,6 @@ took ~12 min on RTX 3060. CPU works too, just slower.
 
 ---
 
-## how to use it
-
-data folder should look like:
-```
-data/
-├── train/
-│   ├── class_name/
-│   └── ...
-└── val/
-    ├── class_name/
-    └── ...
-```
-
 ```bash
 git clone https://github.com/akmaltoyirov42-spec/image-classifier.git
 cd image-classifier
